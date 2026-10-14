@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# AWS CDK
+cdk.out/
+.cdk.staging/
+
+# Salesforce CLI
+.sf/
+.sfdx/
+
+# Node
+node_modules/
+
+# IDE / OS
+.vs/
+.idea/
+.vscode/
+.DS_Store
+
+# Agent / workflow scratch files
+.agents/
+
+# Local secret files used with `aws secretsmanager create-secret --secret-string file://...`
+secret.json
+monitor-secret.json

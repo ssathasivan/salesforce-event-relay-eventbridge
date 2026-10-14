@@ -1,0 +1,22 @@
+{
+  "app": "python app.py",
+  "watch": {
+    "include": ["**"],
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "requirements*.txt",
+      "**/__pycache__",
+      "tests"
+    ]
+  },
+  "context": {
+    "salesforceApiVersion": "v68.0",
+    "returnSecretName": "salesforce/member-relay",
+    "monitorSecretName": "salesforce/relay-monitor",
+    "eventRelayConfigId": "",
+    "enableRelayHealthCheck": "true",
+    "alertEmail": "",
+    "freshnessWindowHours": "2"
+  }
+}
