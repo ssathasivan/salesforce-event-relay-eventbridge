@@ -1,5 +1,5 @@
 ---
-title: "Replacing Boomi: Streaming Salesforce Events to AWS with Event Relay and EventBridge"
+title: "Streaming Salesforce Events to AWS with Event Relay and EventBridge"
 published: false
 description: "An architecture for pushing Salesforce events into AWS with Salesforce Event Relay, the EventBridge partner integration, SQS, Lambda, and DynamoDB. No middleware."
 tags: aws, salesforce, eventbridge, serverless
@@ -8,23 +8,21 @@ series: The Developer Journal
 
 ## Background
 
-In our organization, member registration and payments happen in Salesforce, and the relevant information was synced to the applications hosted in AWS through Boomi. Over time, this turned out to be an expensive solution because of the licensing cost for Boomi.
+Many teams keep customer data in Salesforce and run their applications on AWS. Keeping the two in sync often goes through an integration platform such as Boomi or MuleSoft, which adds licensing cost and another system to run.
 
-This article describes how we used [Salesforce Event Relay](https://help.salesforce.com/s/articleView?id=platform.ev_relay_intro.htm&type=5) and the [Amazon EventBridge partner integration for Salesforce](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-saas-salesforce.html) to push events from Salesforce to EventBridge.
+This article shows how to use [Salesforce Event Relay](https://help.salesforce.com/s/articleView?id=platform.ev_relay_intro.htm&type=5) and the [Amazon EventBridge partner integration for Salesforce](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-saas-salesforce.html) to push events from Salesforce to EventBridge without middleware.
 
 ## Architecture
 
 ![Architecture](https://raw.githubusercontent.com/ssathasivan/salesforce-event-relay-eventbridge/main/Architecture.png)
 
-The flow runs left to right. Salesforce and Event Relay are configuration on the Salesforce side. Everything inside the AWS account is deployed with CDK.
+### Salesforce: Customer Created
 
-### Salesforce: Member Created
+When a customer is created in Salesforce, Salesforce publishes a **platform event**. A platform event is Salesforce's version of a message on an event bus. It has a name and a schema, like `Customer_Created__e` with fields `Account_Id__c`, `Name__c`, and `Industry__c`. The `__e` and `__c` suffixes are Salesforce naming conventions for custom events and custom fields.
 
-When a member registers, Salesforce publishes a **platform event**. A platform event is Salesforce's version of a message on an event bus. It has a name and a schema, like `Member_Registered__e` with fields `Member_Id__c`, `Email__c`, and `Membership_Type__c`. The `__e` and `__c` suffixes are Salesforce naming conventions for custom events and custom fields.
+Customers are stored as Account records, a standard Salesforce object. An Apex trigger (Salesforce's equivalent of a database trigger) publishes the event when an Account is inserted. A Flow, Salesforce's low-code automation, can do the same.
 
-An Apex trigger (Salesforce's equivalent of a database trigger) publishes the event when a member record is inserted. A Flow, Salesforce's low-code automation, can do the same.
-
-The event is set to publish after commit. If the registration fails and rolls back, nothing is sent to AWS.
+The event is set to publish after commit. If the save fails and rolls back, nothing is sent to AWS.
 
 ### Salesforce Event Relay
 
@@ -32,7 +30,7 @@ Event Relay is a Salesforce feature that forwards platform events to EventBridge
 
 Three Salesforce pieces make up a relay:
 
-- A **channel**. This is a group of event types, similar to a topic. You add `Member_Registered__e` to it as a channel member.
+- A **channel**. This is a group of event types, similar to a topic. You add `Customer_Created__e` to it as a channel member.
 - A **named credential**. This is Salesforce's configuration for an external endpoint. For Event Relay it holds only the AWS account ID and region. No AWS access keys or IAM roles are stored in Salesforce.
 - The **relay** itself, which links the channel to the named credential.
 
@@ -46,22 +44,22 @@ One relay maps to one channel, one partner event source, and one partner bus.
 
 Each event arrives with `detail-type` set to the Salesforce event name. Rules match on it, so they route without reading the payload.
 
-We use one rule per subsystem. Member events go to the membership queue. Payment events, when we add them, get their own rule and queue. Each subsystem can then be deployed, scaled, and paused on its own.
+A good pattern is one rule per subsystem. Customer events go to the customer queue. Order events, if you add them, get their own rule and queue. Each subsystem can then be deployed, scaled, and paused on its own.
 
 ### Amazon SQS queue and DLQ
 
-The rule doesn't invoke the Lambda directly. It sends events to an SQS queue, and the Lambda reads from the queue. This is a pattern we follow for every event-driven consumer:
+The rule doesn't invoke the Lambda directly. It sends events to an SQS queue, and the Lambda reads from the queue. This is a common best practice for event-driven consumers:
 
-- **Buffering.** A burst of registrations waits in the queue instead of driving Lambda concurrency up. The event source mapping's maximum concurrency caps how hard the Lambda hits downstream systems.
+- **Buffering.** A burst of new customers waits in the queue instead of driving Lambda concurrency up. The event source mapping's maximum concurrency caps how hard the Lambda hits downstream systems.
 - **Retries.** If the Lambda fails, the message becomes visible again after the visibility timeout and is retried.
 - **A dead-letter queue.** After a set number of failed receives, SQS moves the message to the DLQ. Nothing is lost, and the message can be redriven to the main queue after a fix.
 - **Partial batch failures.** The Lambda reports which messages in a batch failed, so only those are retried.
 
-The DLQ is the main operational signal. An alarm on its depth tells us something is failing.
+The DLQ is the main operational signal. An alarm on its depth shows that something is failing.
 
 ### Lambda and DynamoDB
 
-The Lambda reads the member details from the event and writes them to DynamoDB. In our case, that is where the AWS applications read member data from.
+The Lambda reads the customer details from the event and writes them to DynamoDB. That is where the AWS applications read the data from.
 
 ## What arrives in AWS
 
@@ -71,7 +69,7 @@ This is a relayed event as EventBridge delivers it:
 {
   "version": "0",
   "id": "6f33d717-8e35-4488-5690-89e681b5737c",
-  "detail-type": "Member_Registered__e",
+  "detail-type": "Customer_Created__e",
   "source": "aws.partner/salesforce.com/00D.../0YL...",
   "account": "123456789012",
   "time": "2026-10-13T19:23:23Z",
@@ -81,9 +79,9 @@ This is a relayed event as EventBridge delivers it:
     "payload": {
       "CreatedById": "005...",
       "CreatedDate": "2026-10-13T19:23:22.686Z",
-      "Member_Id__c": "a005g00000AbCdEAAV",
-      "Email__c": "member@example.com",
-      "Membership_Type__c": "Standard"
+      "Account_Id__c": "0015g00000AbCdEAAV",
+      "Name__c": "Example Corp",
+      "Industry__c": "Manufacturing"
     },
     "schemaId": "mVBhpA7tU9MCtBEbqjycBQ",
     "id": "118dab75-7b45-498e-8478-52d0324c1060"
@@ -105,21 +103,21 @@ If the relay hits an error it can't resume from, a recovery setting decides what
 - `LATEST` (the default) skips events published during the outage.
 - `EARLIEST` re-sends everything still retained on the Salesforce event bus, up to 72 hours.
 
-We use `EARLIEST`, because a missed registration means a member who can't use our applications. The cost is duplicates.
+For business data, `EARLIEST` is usually the right choice, because a missed event means a customer the AWS applications don't know about. The cost is duplicates.
 
 ### Duplicates
 
-Between `EARLIEST` recovery, EventBridge retries, and SQS retries, the same event can be delivered more than once. The Lambda writes to DynamoDB with a conditional put keyed on the Salesforce member ID. A second delivery of the same member doesn't create a second record.
+Between `EARLIEST` recovery, EventBridge retries, and SQS retries, the same event can be delivered more than once. The Lambda writes to DynamoDB with a conditional put keyed on the Salesforce Account ID. A second delivery of the same customer doesn't create a second record.
 
 ### Small payloads
 
-Salesforce documents a 256 KB limit for relayed events, and larger events are dropped without an error. We send IDs and the few fields the AWS side needs. If a consumer needs more, it can query Salesforce by ID.
+Salesforce documents a 256 KB limit for relayed events, and larger events are dropped without an error. Send IDs and the few fields the AWS side needs. If a consumer needs more, it can query Salesforce by ID.
 
 ### Monitoring the relay
 
 When a relay goes into an error state, Salesforce retries, but it doesn't alert anyone ([Relay status](https://help.salesforce.com/s/articleView?id=platform.ev_relay_status.htm&language=en_US&type=5)). From AWS, a broken relay looks the same as a quiet day.
 
-We watch two things:
+Watch two things:
 
 - The relay status, which Salesforce exposes through a queryable object called `EventRelayFeedback`. A scheduled Lambda checks it and publishes a CloudWatch metric.
 - The DLQ depth on the AWS side.
