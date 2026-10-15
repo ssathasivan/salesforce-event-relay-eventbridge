@@ -143,7 +143,7 @@ Copy the full name. Don't choose **Associate with event bus** in the console. Th
 ```bash
 cd aws
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 
 cdk bootstrap                      # once per account and region
@@ -184,7 +184,7 @@ Salesforce doesn't alert you when a relay fails. Check its status with the `Even
 
 ```bash
 sf data query --target-org relay-dev \
-  -q "SELECT Status, ErrorCode, ErrorMessage, ErrorTime, LastRelayedEventTime FROM EventRelayFeedback"
+  -q "SELECT Status, ErrorMessage, ErrorTime, RemoteResource FROM EventRelayFeedback"
 ```
 
 A healthy relay shows `RUNNING`.
@@ -196,7 +196,7 @@ Check each step in order:
 | Where | What to check |
 |---|---|
 | Salesforce | The trigger is active, and the Account was saved successfully. |
-| Event Relay | `EventRelayFeedback.Status` is `RUNNING`, and `LastRelayedEventTime` updates after you create an Account. |
+| Event Relay | `EventRelayFeedback.Status` is `RUNNING`, and `ErrorMessage` is empty. |
 | Partner event source | It's **Active** in the EventBridge console, not **Pending**. |
 | Rule | In CloudWatch, the `AWS/Events` metric `MatchedEvents` for the rule `customer-created-to-queue` is above 0. |
 | Queue and Lambda | The Lambda logs show `Customer stored` or `Duplicate skipped`. Errors appear in the logs and, after 5 attempts, the message moves to the DLQ. |
