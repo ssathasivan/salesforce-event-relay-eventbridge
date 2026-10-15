@@ -3,22 +3,22 @@ import os
 
 import aws_cdk as cdk
 
-from stacks.member_relay_stack import MemberRelayStack, RelayConfig
+from stacks.customer_relay_stack import CustomerRelayStack, RelayConfig
 
 app = cdk.App()
 config = RelayConfig.from_context(app.node)
 
-MemberRelayStack(
+CustomerRelayStack(
     app,
-    "sf-member-relay",
+    "sf-customer-relay",
     config=config,
     env=cdk.Environment(
         account=os.environ.get("CDK_DEFAULT_ACCOUNT"),
         region=os.environ.get("CDK_DEFAULT_REGION"),
     ),
     description=(
-        "Salesforce Event Relay round trip (partner bus, Python Lambda, "
-        "API destination back to Salesforce, relay monitoring)"
+        "Salesforce Event Relay to AWS: partner event bus, rule, SQS queue and DLQ, "
+        "Python Lambda, DynamoDB"
     ),
 )
 

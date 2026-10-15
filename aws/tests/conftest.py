@@ -5,11 +5,9 @@ from typing import Any
 
 import pytest
 
-# Set before any Lambda module is imported: member_sync reads RESULT_BUS_NAME
-# and MEMBER_TABLE_NAME at import, and boto3 clients need a region and (dummy)
-# credentials.
-os.environ.setdefault("RESULT_BUS_NAME", "member-results")
-os.environ.setdefault("MEMBER_TABLE_NAME", "members")
+# Set before the Lambda module is imported: customer_sync reads CUSTOMER_TABLE_NAME
+# at import, and boto3 clients need a region and (dummy) credentials.
+os.environ.setdefault("CUSTOMER_TABLE_NAME", "customers")
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
 os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")
 os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")

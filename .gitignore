@@ -25,7 +25,3 @@ node_modules/
 
 # Agent / workflow scratch files
 .agents/
-
-# Local secret files used with `aws secretsmanager create-secret --secret-string file://...`
-secret.json
-monitor-secret.json

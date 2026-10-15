@@ -1,7 +1,7 @@
 {
   "version": "0",
   "id": "6f33d717-8e35-4488-5690-89e681b5737c",
-  "detail-type": "Member_Registered__e",
+  "detail-type": "Customer_Created__e",
   "source": "aws.partner/salesforce.com/00D.../0YL...",
   "account": "123456789012",
   "time": "2026-10-13T19:23:23Z",
@@ -11,9 +11,9 @@
     "payload": {
       "CreatedById": "005...",
       "CreatedDate": "2026-10-13T19:23:22.686Z",
-      "Member_Id__c": "a005g00000AbCdEAAV",
-      "Email__c": "member@example.com",
-      "Membership_Type__c": "Standard"
+      "Account_Id__c": "0015g00000AbCdEAAV",
+      "Name__c": "Example Corp",
+      "Industry__c": "Manufacturing"
     },
     "schemaId": "mVBhpA7tU9MCtBEbqjycBQ",
     "id": "118dab75-7b45-498e-8478-52d0324c1060"
