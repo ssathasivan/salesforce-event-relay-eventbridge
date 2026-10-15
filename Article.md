@@ -1,14 +1,3 @@
----
-title: "Streaming Salesforce Events to AWS with Event Relay and EventBridge"
-published: false
-description: "An architecture for pushing Salesforce events into AWS with Salesforce Event Relay, the EventBridge partner integration, SQS, Lambda, and DynamoDB. No middleware."
-tags: aws, salesforce, eventbridge, serverless
-series: The Developer Journal
----
-
-
-
-
 ## Background
 
 
